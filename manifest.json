@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "Hello Extensions (New Version)",
+  "description": "Base Level Extension",
+  "version": "1.2",
+  "action": {
+    "default_title": "Click to open panel",
+    "default_popup":"home.html",
+    "default_icon": "icon.png"
+  },
+  "permissions": [
+    "tabs","tabGroups","scripting", "activeTab","sidePanel", "bookmarks"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "side_panel": {
+    "default_path": "side-panel.html"
+  },
+  "content_scripts": [
+    {
+      "js": ["scripts/content.js"],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "background":{
+     "service_worker": "service-worker.js",
+     "type":"module"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+B",
+        "mac": "Command+B"
+      }
+    }
+  }
+  
+}
+

@@ -1,0 +1,196 @@
+* {
+  margin:0;
+  border:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+html {
+  background-color: #222222;
+  color: white;
+  width:100%;
+}
+
+.container {
+  padding:10px;
+  width: 100%;
+  height: 100%;
+  display:flex;
+  flex-direction: column;
+  /* display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); */
+  align-content: start;
+  align-items: start;
+  justify-content: start;
+  text-align: center;
+}
+
+.folder {
+  padding-top: 5px;
+  padding-bottom:5px;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: space-between;
+  align-items: start;
+  justify-content: center;
+  text-align: center;
+  width: auto;
+  gap: 5px;
+}
+
+.folder-content {
+  padding-left:10px;
+  /* padding: 10px; */
+  /*display:grid;
+ grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));*/
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: space-between;
+  align-items: start;
+  justify-content: center;
+  text-align: center;
+  width: auto;
+  /* background-color: #444444; */
+  opaque: 0.8;
+  gap: 5px;
+  border-radius: 8px;
+}
+
+.folder-content.collapsed {
+  display: none;
+}
+
+.folder-content.expanded {
+  display: flex;
+}
+
+.right {
+  transition: transform 0.5s ease;
+  display:block;
+}
+
+.down {
+  transition: transform 0.5s ease;
+  display:none;
+}
+
+.folder-title.collapsed .right {
+  display: block;
+}
+
+.folder-title.collapsed .down {
+   display: none;
+}
+
+.folder-title.expanded .right {
+  display: none;
+}
+
+.folder-title.expanded .down {
+  display: block;
+}
+
+.tab-group-title {
+  color: blue;
+  width: minmax(350px, 1fr);
+}
+
+.folder-title {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap:5px;
+  font-family: 'Lucida Console';
+  font-size:1.1em;
+  color: rgb(255, 255, 255);
+  /* background-color: #4b85e3; */
+  width: auto;
+  font-size:1.3em;
+  border-radius: 8px;
+  /* border:1px solid grey; */
+  /* box-shadow: 3px 3px 3px 3px rgba(0, 0, 0, 0.4); */
+  cursor: pointer;
+}
+
+.tab {
+  color: rgba(0, 0, 0, 0.7);
+  border: solid 1px #444444;
+  border-radius: 8px;
+  width: 100%;
+  height: auto;
+  cursor: pointer;
+}
+
+.bookmark {
+  padding-left:10px;
+  display: flex;
+  flex-direction: row;
+  align-content: start;
+  justify-content: start;
+  gap:2px;
+  color: white;
+  border-radius: 8px;
+  width: 100%;
+  height: auto;
+  cursor: pointer;
+  align-items: start;
+}
+
+.bookmark a {
+  text-align: left;
+  color: white;
+}
+
+/* .search-bar {
+  margin:5px;
+  margin-bottom:20px;
+  display: flex;
+  flex-wrap: wrap;
+  border-radius: 8px;
+  height: auto;
+  width: calc(100% - 10px);
+}*/
+
+/* .search-bar input {
+  font-size: 1.3em;
+  border: 1px solid grey;
+  border-radius: 8px;
+  width: 100%;
+  height: 30px;
+} */
+
+/* Estilo del contenedor */
+.search-bar {
+  margin:5px;
+  margin-bottom:20px;
+  position: relative;
+  display: inline-block;
+  width: calc(100% - 10px); /* Ajusta el ancho según tu necesidad */
+}
+
+/* Estilo del input */
+.search-bar input {
+  width: 100%;
+  padding-right: 40px; /* Espacio suficiente para la lupa */
+  padding-left: 10px;
+  box-sizing: border-box; /* Asegura que el padding no aumente el tamaño del input */
+  font-size: 1.3em;
+  border: 1px solid grey;
+  border-radius: 8px;
+  width: 100%;
+  height: 30px;
+}
+
+/* Estilo del icono de la lupa */
+.search-bar .search-icon {
+  position: absolute;
+  right: 10px; /* Ajusta la posición horizontal de la lupa */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px; /* Ajusta el tamaño de la lupa */
+  height: 20px;
+  pointer-events: none; /* Esto permite que el clic pase al input */
+  opacity: 0.8; /* (Opcional) Para que sea más sutil */
+}
