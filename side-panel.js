@@ -41,6 +41,37 @@ function loadTopLevelFolders() {
       container.appendChild(folderElement);
     });
   });
+
+  const colors = {
+     "blue" : "#8ab4f8",
+     "yellow": "#fdd663",
+     "purple": "#c58af9",
+     "grey": "#dadce0",
+     "red": "#f28b82",
+     "cyan": "#78d9ec",
+     "orange": "#fcad70",
+     "green": "#81c995",
+     "pink": "#ff8bcb"
+    }
+
+  const tabGroupContainer = document.querySelector(".tab-group-container");
+  chrome.tabGroups.query({}, (tabGroups) => {
+      tabGroups.forEach((tabGroup) => {	
+       const  tabGroupElement = document.createElement("div");
+       tabGroupElement.classList.add("tab-group");
+
+       const tabGroupTitleElement = document.createElement("div");
+       tabGroupTitleElement.classList.add("tab-group-title");
+       tabGroupTitleElement.id = tabGroup.id;
+       let elementColor = colors[tabGroup.color]; 
+       tabGroupTitleElement.innerHTML = `<div class="down"><i class="fa-solid fa-caret-down"></i></div>
+                                <div class="right"><i class="fa-solid fa-caret-right"></i></div>
+                                <span class="material-symbols-outlined" style="color:${elementColor}">tab_group</span>
+                                <div style="width:100%;color:${elementColor};">${tabGroup.title}</div>`;
+       tabGroupElement.appendChild(tabGroupTitleElement);
+       tabGroupContainer.appendChild(tabGroupElement);
+     });
+  });
 }
 
 function loadItemChildren(event) {
@@ -164,7 +195,7 @@ function search(element) {
   
     chrome.bookmarks.getTree((bookmarkTreeNodes) => {
       let allBookmarks = [];
-
+	
       // Función recursiva para recorrer el árbol de marcadores
       function extractBookmarks(bookmarkNodes) {
         bookmarkNodes.forEach(node => {
@@ -186,7 +217,7 @@ function search(element) {
       // Llamar a la función recursiva
       extractBookmarks(bookmarkTreeNodes);
 
-      allBookmarks.filter((bookmark) => bookmark.title.includes(query))
+      allBookmarks.filter((bookmark) => bookmark.title.toLowerCase().includes(query))
       .map((element) => container.appendChild(addBookmark(element)));
     });
   } else {
