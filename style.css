@@ -72,20 +72,6 @@ html {
   border-radius: 8px;
 }
 
-.tab-group {
-  padding-top: 5px;
-  padding-bottom:5px;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-content: space-between;
-  align-items: start;
-  justify-content: center;
-  text-align: center;
-  width: auto;
-  gap: 5px;
-}
-
 .folder-content.collapsed {
   display: none;
 }
@@ -118,23 +104,6 @@ html {
 
 .folder-title.expanded .down {
   display: block;
-}
-
-.tab-group-title {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap:5px;
-  font-family: 'Lucida Console';
-  font-size:1.1em;
-  color: rgb(255, 255, 255);
-  /* background-color: #4b85e3; */
-  width: auto;
-  font-size:1.3em;
-  border-radius: 8px;
-  /* border:1px solid grey; */
-  /* box-shadow: 3px 3px 3px 3px rgba(0, 0, 0, 0.4); */
-  cursor: pointer;
 }
 
 .folder-title {

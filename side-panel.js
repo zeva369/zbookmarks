@@ -58,17 +58,25 @@ function loadTopLevelFolders() {
   chrome.tabGroups.query({}, (tabGroups) => {
       tabGroups.forEach((tabGroup) => {	
        const  tabGroupElement = document.createElement("div");
-       tabGroupElement.classList.add("tab-group");
+       tabGroupElement.classList.add("folder");
 
-       const tabGroupTitleElement = document.createElement("div");
-       tabGroupTitleElement.classList.add("tab-group-title");
-       tabGroupTitleElement.id = tabGroup.id;
+       const tabGroupTitle = document.createElement("div");
+       tabGroupTitle.classList.add("folder-title");
+       tabGroupTitle.id = tabGroup.id;
        let elementColor = colors[tabGroup.color]; 
-       tabGroupTitleElement.innerHTML = `<div class="down"><i class="fa-solid fa-caret-down"></i></div>
+       tabGroupTitle.classList.add("collapsed");
+       tabGroupTitle.innerHTML = `<div class="down"><i class="fa-solid fa-caret-down"></i></div>
                                 <div class="right"><i class="fa-solid fa-caret-right"></i></div>
                                 <span class="material-symbols-outlined" style="color:${elementColor}">tab_group</span>
                                 <div style="width:100%;color:${elementColor};">${tabGroup.title}</div>`;
-       tabGroupElement.appendChild(tabGroupTitleElement);
+       tabGroupTitle.addEventListener("click", (event) => loadTabGroupChildren(event));
+       tabGroupElement.appendChild(tabGroupTitle);
+       
+       const tabGroupContent = document.createElement("div");
+       tabGroupContent.classList.add("folder-content");
+       tabGroupContent.classList.add("collapsed");
+       tabGroupElement.appendChild(tabGroupContent);
+
        tabGroupContainer.appendChild(tabGroupElement);
      });
   });
@@ -125,6 +133,56 @@ function loadItemChildren(event) {
           }
 
           contentElement.appendChild(bookmark);
+        });
+        contentElement.classList.remove("collapsed");
+        contentElement.classList.add("expanded");
+
+        element.classList.remove("collapsed");
+        element.classList.add("expanded");
+      } else {
+        //Ver como eliminar el signo + cuando no tiene hijos
+      }
+
+    });
+
+  //If Expanded -> Collapse 
+  } else {
+    removeChildren(contentElement);
+    contentElement.classList.remove("expanded");
+    contentElement.classList.add("collapsed");
+
+    element.classList.remove("expanded");
+    element.classList.add("collapsed");
+  }
+}
+
+function loadTabGroupChildren(event) {
+  const element = event.currentTarget;
+  const parent = element.parentNode;
+  const contentElement = getContentElement(parent);
+
+  //If collapsed -> Expand
+  if (element.classList.contains('collapsed')) {
+
+    chrome.tabs.query({ groupId: parseInt(element.id) }, (tabs) => {
+
+      if (tabs.length) {
+        tabs.forEach((child) => {
+
+          const tab = document.createElement("div");
+          tab.backgroundColor = (child.url ? "#FFFFFF" : "#e3d44b");
+          
+          tab.classList.add("bookmark");
+          tab.innerText = child.title;
+          tab.id = child.id;
+
+          const faviconUrl = "https://www.google.com/s2/favicons?domain=" + new URL(child.url).hostname;
+          tab.innerHTML = `
+                          <img src="${faviconUrl}" alt="Favicon" style="width: 16px; height: 16px; margin-right: 8px;">
+                          <a href="${child.url}" target="_blank">${child.title}</a>
+                          `;  
+
+          contentElement.appendChild(tab);
         });
         contentElement.classList.remove("collapsed");
         contentElement.classList.add("expanded");
