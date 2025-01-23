@@ -53,7 +53,7 @@ function loadTopLevelFolders() {
      "green": "#81c995",
      "pink": "#ff8bcb"
     }
-
+  //Load tab groups
   const tabGroupContainer = document.querySelector(".tab-group-container");
   chrome.tabGroups.query({}, (tabGroups) => {
       tabGroups.forEach((tabGroup) => {	
@@ -246,9 +246,11 @@ function search(element) {
     
   if (query != null && query != '') {
     const container = document.querySelector(".container");
+    const tabGroupContainer = document.querySelector(".tab-group-container");
     const searchBar = document.querySelector(".search-bar");
 
     removeChildren(container);
+    removeChildren(tabGroupContainer);
     container.appendChild(searchBar);
   
     chrome.bookmarks.getTree((bookmarkTreeNodes) => {
