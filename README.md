@@ -5,6 +5,10 @@
 
 Improve the access to your bookmarks by associating your tags for custom searches
 
+![Screenshot](screenshot.jpg)
+
+Access with Ctrl + Shift + Z
+
 ## Current Features
 
 * Quick Search for bookmarks
