@@ -1,12 +1,22 @@
-let typingTimer; // Temporizador para detectar inactividad
+let typingTimer;         // Temporizador para detectar inactividad
 const typingDelay = 500; // Tiempo en milisegundos (0.5 segundos)
+let db = null;
+const handleEditButtonClicked = (event) => {
+  event.stopPropagation(); // Evitar que el evento de clic se propague al contenedor padre
+  const editButtonId = event.currentTarget.id.replace("edit_", "");
+  showBookmarkOptions(editButtonId);
+};
+
 
 function loadTopLevelFolders() {
   const container = document.querySelector(".container");
-  const searchBar = document.querySelector(".search-bar");
+  const toolBar = document.querySelector(".toolbar");
+  //const searchBar = document.querySelector(".search-bar");
 
   removeChildren(container);
-  container.appendChild(searchBar);
+  container.appendChild(toolBar);
+  //container.appendChild(searchBar);
+  
 
   chrome.bookmarks.getTree((bookmarkTreeNodes) => {
     const rootNode = bookmarkTreeNodes[0]; // Nodo raíz del árbol de marcadores
@@ -53,6 +63,7 @@ function loadTopLevelFolders() {
      "green": "#81c995",
      "pink": "#ff8bcb"
     }
+
   //Load tab groups
   const tabGroupContainer = document.querySelector(".tab-group-container");
   chrome.tabGroups.query({}, (tabGroups) => {
@@ -82,7 +93,30 @@ function loadTopLevelFolders() {
   });
 }
 
-function loadItemChildren(event) {
+function getTagsByBookmarkId(bookmarkId) {
+  return new Promise((resolve, reject) => {
+    const store = db.transaction("bookmark_tags", "readonly").objectStore("bookmark_tags");
+    const index = store.index("bookmark");
+    const cursorRequest = index.openCursor(IDBKeyRange.only(bookmarkId));
+
+    const results = [];
+
+    cursorRequest.onsuccess = () => {
+      const cursor = event.target.result;
+      if (cursor) {
+        results.push(cursor.value.tag);
+        cursor.continue();                    // Continúa con el siguiente registro, esto provocará otro evento onsuccess
+      } else {
+        resolve(results);                     // Cuando ya no haya más registros, resuelve la promesa
+      }
+    };
+    cursorRequest.onerror = () => {
+      reject(new Error("Error al abrir el cursor"));
+    };
+  });
+}
+
+const loadItemChildren = async (event) => {
   const element = event.currentTarget;
   const parent = element.parentNode;
   const contentElement = getContentElement(parent);
@@ -90,26 +124,36 @@ function loadItemChildren(event) {
   //If collapsed -> Expand
   if (element.classList.contains('collapsed')) {
 
-    chrome.bookmarks.getChildren(element.id, (children) => {
+    chrome.bookmarks.getChildren(element.id, async (children) => {
 
       if (children.length) {
 
-        children.forEach((child) => {
+        //children.forEach((child) => {
+        for (const child of children) {
 
           const bookmark = document.createElement("div");
           bookmark.backgroundColor = (child.url ? "#FFFFFF" : "#e3d44b");
 
+          //Es un link
           if (child.url) {
+            //Consulto los tags en la base de datos 
+            const result = await getTagsByBookmarkId(child.id);
+            let str = "";
+            if (result) str = result.join(" | ");
+
             bookmark.classList.add("bookmark");
+            bookmark.title = str;
             bookmark.innerText = child.title;
             bookmark.id = child.id;
 
             const faviconUrl = "https://www.google.com/s2/favicons?domain=" + new URL(child.url).hostname;
-            bookmark.innerHTML = `
-                          <img src="${faviconUrl}" alt="Favicon" style="width: 16px; height: 16px; margin-right: 8px;">
-                          <a href="${child.url}" target="_blank">${child.title}</a>
-                          `;
-
+            const editButtonId = "edit_" + child.id;
+            bookmark.innerHTML = `<img src="${faviconUrl}" alt="Favicon" style="width: 16px; height: 16px; margin-right: 8px;">
+                                  <a href="${child.url}" target="_blank">${child.title}</a>
+                                  <div id="${editButtonId}" class="edit"><i class="fa-solid fa-pen-to-square"></i></div>`;
+            
+            const editButton = bookmark.querySelector('#' + editButtonId);
+            editButton.addEventListener('click', (event) => handleEditButtonClicked(event));
           } else {
             bookmark.classList.add("folder");
 
@@ -133,7 +177,7 @@ function loadItemChildren(event) {
           }
 
           contentElement.appendChild(bookmark);
-        });
+        } //);
         contentElement.classList.remove("collapsed");
         contentElement.classList.add("expanded");
 
@@ -177,11 +221,12 @@ function loadTabGroupChildren(event) {
           tab.id = child.id;
 
           const faviconUrl = "https://www.google.com/s2/favicons?domain=" + new URL(child.url).hostname;
-          tab.innerHTML = `
-                          <img src="${faviconUrl}" alt="Favicon" style="width: 16px; height: 16px; margin-right: 8px;">
+          const editButtonId = "edit_" + child.id;
+          tab.innerHTML = `<img src="${faviconUrl}" alt="Favicon" style="width: 16px; height: 16px; margin-right: 8px;">
                           <a href="${child.url}" target="_blank">${child.title}</a>
-                          `;  
-
+                          <div id="${editButtonId}" class="edit"><i class="fa-solid fa-pen-to-square"></i></div>`;  
+          const editButton = tab.querySelector('#' + editButtonId);
+          editButton.addEventListener('click',(event) => handleEditButtonClicked(event));
           contentElement.appendChild(tab);
         });
         contentElement.classList.remove("collapsed");
@@ -225,7 +270,7 @@ function removeChildren(element) {
   }
 }
 
-function addBookmark(bookmark) {
+function getBookmarkElement(bookmark) {
   const bmark = document.createElement("div");
   bmark.backgroundColor = (bookmark.url ? "#FFFFFF" : "#e3d44b");
 
@@ -234,24 +279,34 @@ function addBookmark(bookmark) {
   bmark.id = bookmark.id;
 
   const faviconUrl = "https://www.google.com/s2/favicons?domain=" + new URL(bookmark.url).hostname;
-  bmark.innerHTML = `
-                <img src="${faviconUrl}" alt="Favicon" style="width: 16px; height: 16px; margin-right: 8px;">
-                <a href="${bookmark.url}" target="_blank">${bookmark.title}</a>
-                `;
+  const editButtonId = "edit_" + bookmark.id;
+  bmark.innerHTML = `<img src="${faviconUrl}" alt="Favicon" style="width: 16px; height: 16px; margin-right: 8px;">
+                     <a href="${bookmark.url}" target="_blank">${bookmark.title}</a>
+                     <div id="${editButtonId}" class="edit"><i class="fa-solid fa-pen-to-square"></i></div>`;
+  const editButton = bmark.querySelector('#' + editButtonId);
+  editButton.addEventListener('click', (event) => handleEditButtonClicked(event));
   return bmark;
 }
 
-function search(element) {
-  const query = element.toLowerCase();
+function showBookmarkOptions(bookmarkId){
+  const transaction = db.transaction(["bookmarks", "tags"], "readwrite");
+  const bookmarkStore = transaction.objectStore("bookmarks");
+  
+}
+
+function search(value) {
+  const query = value.toLowerCase();
     
   if (query != null && query != '') {
     const container = document.querySelector(".container");
     const tabGroupContainer = document.querySelector(".tab-group-container");
-    const searchBar = document.querySelector(".search-bar");
+    //const searchBar = document.querySelector(".search-bar");
+    const toolBar = document.querySelector(".toolbar");
 
     removeChildren(container);
     removeChildren(tabGroupContainer);
-    container.appendChild(searchBar);
+    container.appendChild(toolBar);
+    //container.appendChild(searchBar);
   
     chrome.bookmarks.getTree((bookmarkTreeNodes) => {
       let allBookmarks = [];
@@ -277,13 +332,12 @@ function search(element) {
       // Llamar a la función recursiva
       extractBookmarks(bookmarkTreeNodes);
 
-      allBookmarks.filter((bookmark) => bookmark.title.toLowerCase().includes(query))
-      .map((element) => container.appendChild(addBookmark(element)));
+      allBookmarks.filter((b) => b.title.toLowerCase().includes(query))
+        .forEach((b) => container.appendChild(getBookmarkElement(b)));
     });
   } else {
     loadTopLevelFolders();
   }  
-
 }
 
 function initSearchBar() {
@@ -291,107 +345,166 @@ function initSearchBar() {
 
   //Add event listener para detectar cuando
   inputElement.addEventListener('input', (event) => {
-    clearTimeout(typingTimer); // Resetea el temporizador si se sigue escribiendo
+    let value = event.target.value;
+    clearTimeout(typingTimer);                                    // Resetea el temporizador si se sigue escribiendo
+    typingTimer = setTimeout(() => search(value), typingDelay);   // Espera un tiempo después del último input
+  });
+}
 
-    typingTimer = setTimeout(() => {
-      search(event.target.value);
-    }, typingDelay); // Espera un tiempo después del último input
+async function findFolderByName(folderName) {
+  return new Promise((resolve, reject) => {
+    chrome.bookmarks.getTree((bookmarkTreeNodes) => {
+      let foundFolder = null;
+
+      // Función recursiva para buscar la carpeta
+      function searchFolders(nodes) {
+        for (const node of nodes) {
+          if (node.title === folderName && node.children) {
+            foundFolder = node;
+            return;
+          }
+          if (node.children) {
+            searchFolders(node.children);
+          }
+        }
+      }
+
+      searchFolders(bookmarkTreeNodes);
+
+      if (foundFolder) {
+        resolve(foundFolder);
+      } else {
+        reject(new Error(`Carpeta con el nombre "${folderName}" no encontrada.`));
+      }
+    });
   });
 }
 
 function initDatabase() {
-  const request = indexedDB.open("zbookmarks", 5);
+  //indexedDB.deleteDatabase("zbookmarks"); //Elimino la base de datos para crearla de nuevo
+  const request = indexedDB.open("zbookmarks", 1);
 
   //Crea la base de datos
   request.onupgradeneeded = function (event) {
-    const db = event.target.result;
+    db = event.target.result;
 
     if (db.objectStoreNames.contains("folders")) db.deleteObjectStore("folders");
     if (db.objectStoreNames.contains("bookmarks")) db.deleteObjectStore("bookmarks");
     if (db.objectStoreNames.contains("tags")) db.deleteObjectStore("tags");
+    if (db.objectStoreNames.contains("bookmark_tags")) db.deleteObjectStore("bookmark_tags");
 
     db.createObjectStore("folders", { keyPath: "id" });     //El id deberia ser el mismo que utiliza chrome
-    db.createObjectStore("bookmarks", { keyPath: "id" });  
-    tagsStore = db.createObjectStore("tags", { keyPath: "id" });        //El id del tag es el tag en si mismo
-    
-    if (tagsStore.indexNames.contains("bookmark_id")) {
-      console.log("Borrando indice...");
-      tagsStore.deleteObjectStore("bookmark_id");
-    }
-    tagsStore.createIndex("bookmark_id", "bookmark_id", { unique: false });
+    const bookmarksStore = db.createObjectStore("bookmarks", { keyPath: "id" });  
+    bookmarksStore.createIndex("id", "id", { unique: true });
+
+    const tagsStore = db.createObjectStore("tags", { keyPath: "key" });        //El id del tag es el tag en si mismo
+    tagsStore.createIndex("key", "key", { unique: false });
+
+    const bookmarkTagsStore = db.createObjectStore("bookmark_tags", { keyPath: "id", autoIncrement: true  });
+    bookmarkTagsStore.createIndex("bookmark", "bookmark", { unique: false });
+    bookmarkTagsStore.createIndex("tag", "tag", { unique: false });
   };
-
-  //Agrega elementos
-  const addData = (db) => {
-    const transaction = db.transaction(["folders", "bookmarks", "tags"], "readwrite");
-
-    const folderStore = transaction.objectStore("folders");
-    const bookmarkStore = transaction.objectStore("bookmarks");
-    const tagsStore = transaction.objectStore("tags");
-
-    // folderStore.put({ id: 1, name: "Libros" });
-
-    folderStore.get(1).onsuccess = (e) => {
-      console.log("Carpeta: ", e.target.result);
-    };
-
-    // bookmarkStore.put({ id: 1, url:"https://www.amazon.es/ca%C3%ADda-N%C3%BAmenor-Biblioteca-J-Tolkien/dp/8445015052/ref=sr_1_8?__mk_es_ES=%C3%85M%C3%85%C5%BD%C3%95%C3%91&crid=6HDZUHI43NG8&dib=eyJ2IjoiMSJ9.o1gL6MUHOI8S4Vg03RYAupLM18edQDkAn1_XludP6MT_8DZZsQC2eXql3KHDVnJjNEzf_WaotXRVS-ibVCiUDDB_ZI9-86yxO6MCgFOKwBjWuNEPUqPy1m79zl0s0OQRBKj1x-7MfkqMVNw-vqY9EjLrn2F5oRwfPbNKRoc0fIa_Pu2SxOGgF7N2pWAvYGhE8BSjC3beUT8y2gG3WwMdsxYcxXUxEDggeJw8XRaH3d3fqnTGCURZTGlwavaUD5c5qinBE54RrvAlD6dPL9dACrq9A1JHpcA6Ml6KG9_p6YbJrPHyiNsoMaqhnSX4339Q7uXCJxnEwS0h7h1j3graQRf_VF0okz2ae4C5tq8GW3iUi2MOilNayJkLb0RfRaBSAGYdAeabUBdTmarStF5H_37dFTtengQfcOHiw3tBubib8ejf8s_qxDcGSRY9ntev.1KS_ty5KqhGiyaUOaorAVVQyG0Wy2qPFhNX2vVwMQbs&dib_tag=se&keywords=libro&nsdOptOutParam=true&qid=1734258778&sprefix=libro%2Caps%2C176&sr=8-8" });
-
-    bookmarkStore.get(1).onsuccess = (e) => {
-      console.log("Marcador: ", e.target.result);
-    };
-    
-    const tags = [
-      { id: "Tolkien" , bookmark_id: 1},
-      { id: "caída" , bookmark_id: 1},
-      { id: "minotauro", bookmark_id: 1},
-      { id: "brian" , bookmark_id: 1},
-      { id: "sibley" , bookmark_id: 1},
-    ];
-
-    // tags.forEach((tag) => tagsStore.add(tag));
-
-    tagsStore.get("Tolkien").onsuccess = (e) => {
-      console.log("Tag: ", e.target.result);
-    };
-
-    transaction.oncomplete = () => {
-      console.log("Datos insertados correctamente.");
-    };
-
-    transaction.onerror = (event) => {
-      console.error("Error al insertar datos:", event.target.error);
-    };
-
-    //Consulto todos los tags del bookmark
-    const bookmarkIdIndex = tagsStore.index("bookmark_id");
-
-    const request = bookmarkIdIndex.getAll(1);
-
-    request.onsuccess = () => {
-      console.log(`Tags del bookmark con ID ${1}:`, request.result);
-    };
-
-    request.onerror = () => {
-      console.error("Error al obtener los tags del bookmark.");
-    };
-
-  };
+  
 
   request.onsuccess = function (event) {
-    const db = event.target.result;
-    addData(db);
+    //Guardo la referencia a la base de datos
+    db = event.target.result;
+    //addData(db);
   };
 
+}
+
+function initializeChromeMessages() {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'BOOKMARK_CREATED') {
+      // Aquí puedes mostrar el modal
+      alert(message.message);  // Solo como ejemplo, podrías usar un modal real
+      // O usar algo como un modal de HTML:
+      //showModal(message.message);
+    }
+  });
+}
+
+async function getCurrentTab() {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs.length > 0) {
+        resolve(tabs[0]);
+      } else {
+        reject(new Error("No se encontraron pestañas activas."));
+      }
+    });
+  });
+}
+
+function initModal() {
+  const modal = document.getElementById('myModal');
+  const closeBtn = document.querySelector('.close');
+  const addBookmarkBtn = document.getElementById('addBookmarkBtn');
+
+  closeBtn.onclick = () => {
+    modal.style.display = 'none';
+  };
+
+  window.onclick = (e) => {
+    if (e.target == modal) {
+      modal.style.display = 'none';
+    }
+  };  
+
+  document.getElementById("addBookmark").addEventListener("click", async () => {
+    const modal = document.getElementById('myModal');
+    const bookmarkUrl = document.getElementById('bookmarkUrl');
+    const bookmarkTitle = document.getElementById('bookmarkTitle');
+    const curTab = await getCurrentTab();
+    bookmarkTitle.value = curTab.title; 
+    bookmarkUrl.value = curTab.url;
+    modal.style.display = 'block';    
+  });
+
+  addBookmarkBtn.onclick = () => {
+    const bookmarkTitle = document.getElementById('bookmarkTitle').value;
+    const bookmarkUrl = document.getElementById('bookmarkUrl').value;
+    const bookmarkTags = document.getElementById('tags').value.split(',');
+    const folder = document.getElementById('folder').value;
+    
+    findFolderByName(folder)
+      .then((folder) => {
+          chrome.runtime.sendMessage(
+            {
+              type: "CREATE_BOOKMARK",
+              data: {
+                title: bookmarkTitle,
+                url: bookmarkUrl,
+                parentId: folder.id,
+                bookmarkTags: bookmarkTags,
+              },
+            },
+            (response) => {
+              if (response.success) {
+                console.log("Bookmark creado:", response.bookmark);
+              } else {
+                console.error("Error al crear el marcador:", response.error);
+              }
+            }
+          );
+      })
+      .catch((error) => {
+        console.error(error.message);
+      });
+  }
 }
 
 function initialize() {
   initDatabase();
   loadTopLevelFolders();
   initSearchBar();
+  initializeChromeMessages();
+  initModal();
 }
 
 // Cargar las carpetas al cargar la página
 document.addEventListener("DOMContentLoaded", initialize);
+
 
 
