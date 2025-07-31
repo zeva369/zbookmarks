@@ -14,6 +14,8 @@ Access with Ctrl + Shift + Z
 * Quick Search for bookmarks
 * Tab Groups navigation
 * (*) Add bookmarks with tags associated
+  
+---
 
 (*) TODO: 
 - Choose the folder from a list/create new
