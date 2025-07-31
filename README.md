@@ -12,6 +12,7 @@ Improve the access to your bookmarks by associating your tags for custom searche
 * (*) Add bookmarks with tags associated
 
 (*) TODO: 
+
 - Choose the folder from a list/create new
 - Edit bookmarks
 - Search for tags
