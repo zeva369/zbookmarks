@@ -16,7 +16,6 @@ Access with Ctrl + Shift + Z
 * (*) Add bookmarks with tags associated
 
 (*) TODO: 
-
 - Choose the folder from a list/create new
 - Edit bookmarks
 - Search for tags
